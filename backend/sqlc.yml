@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "data/migrations/20241024033127_solmarket_migrations.sql"
+    queries: "data/query.sql"
+    database:
+      uri: postgresql://postgres:Test@localhost:5432/postgres
+    gen:
+      go:
+        package: "data"
+        out: "data"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
