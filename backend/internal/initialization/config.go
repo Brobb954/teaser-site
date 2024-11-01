@@ -15,19 +15,21 @@ type Config struct {
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
-	return defaultValue
+
+	return value
 }
 
 func GetConfig() Config {
 	return Config{
-		DBHost:         getEnvOrDefault("DB_HOST", "localhost"),
+		DBHost:         getEnvOrDefault("DB_HOST", "postgres"),
 		DBPort:         getEnvOrDefault("DB_PORT", "5432"),
 		DBUser:         getEnvOrDefault("DB_USER", "postgres"),
 		DBName:         getEnvOrDefault("DB_NAME", "postgres"),
-		DBPassword:     getEnvOrDefault("DB_PASSWORD", "notPassword"),
+		DBPassword:     getEnvOrDefault("DB_PASSWORD", ""),
 		ServerPort:     getEnvOrDefault("SERVER_PORT", "8000"),
 		AllowedOrigins: getEnvOrDefault("ALLOWED_ORIGINS", "*"),
 	}

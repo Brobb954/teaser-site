@@ -1,6 +1,9 @@
-prod_up:
-	docker compose up
-
-dev_up:
+up:
 	docker compose -f docker-compose.traefik.yaml up -d ; \
-	docker compose -f docker-compose.dev.yaml up -d
+	docker compose -f docker-compose.yaml build --no-cache && docker compose -f docker-compose.yaml up -d
+
+down:
+	docker compose -f docker-compose.traefik.yaml down; \
+	docker compose -f docker-compose.yaml down
+
+

@@ -1,0 +1,108 @@
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: frontend.dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-http.rule=Host(`solmarket.info`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-https.tls=true"
+      - "traefik.http.routers.frontend-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.frontend-https.entrypoints=web-secure"
+      - "traefik.http.routers.frontend-https.rule=Host(`solmarket.info`)"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      backend:
+        condition: service_healthy
+        restart: true
+    networks:
+    - teaser-site
+
+  backend:
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        window: 120s
+    build:
+      context: ./backend
+      dockerfile: backend.test.dockerfile
+    env_file:
+      - .env
+    environment:
+      - GOCACHE=/root/.cache/go-build
+      - GOMODCACHE=/go/pkg/mod
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_PORT=5432
+      - SERVER_PORT=8000
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - GO_ENV=production
+    labels:
+      - "traefik.enable=true"
+      # Router
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.service=backend"
+
+      # Service
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+      # Middlewares
+      - "traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,OPTIONS,PATCH"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://solmarket.info,https://www.solmarket.info"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Accept,Authorization,Content-Type,Origin,Host"
+
+      # Apply middlewares to router
+      - "traefik.http.routers.backend.middlewares=backend-strip,backend-cors"
+    healthcheck:
+      test: ["CMD", "/bin/healthcheck"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    networks:
+      - teaser-site
+
+  postgres:
+    image: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 2s
+      start_period: 30s
+      retries: 3
+    networks:
+      - teaser-site
+
+networks:
+  teaser-site:
+    external:
+      true
+
+volumes:
+  postgres-data:
+  letsencrypt:

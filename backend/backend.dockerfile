@@ -1,62 +1,40 @@
-# Create a stage for building the application and installing Air.
-ARG GO_VERSION=1.23.2
-FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS build
-LABEL org.opencontainers.image.source=https://github.com/brobb954/teaser-site
+# Build stage
+FROM golang:1.23.2 AS builder
+
 WORKDIR /app
 
-# Install Air for live reloading
-RUN go install github.com/air-verse/air@latest
+# Copy go.mod and go.sum first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-RUN --mount=type=cache,target=/go/pkg/mod/ \
-    --mount=type=bind,source=go.sum,target=go.sum \
-    --mount=type=bind,source=go.mod,target=go.mod \
-    go mod download -x
+# Copy source code
+COPY . .
 
-# This is the architecture you're building for, which is passed in by the builder.
-ARG TARGETARCH
+# Build the main application
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
 
-# Build the application.
-RUN --mount=type=cache,target=/go/pkg/mod/ \
-    --mount=type=bind,target=. \
-    CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/server .
+# Build the healthcheck binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/healthcheck ./cmd/healthcheck
 
-################################################################################
-# Create a new stage for production without Air, running the compiled binary.
-FROM alpine:latest AS final
+# Final stage
+FROM alpine:3.19
 
-LABEL org.opencontainers.image.source=https://github.com/brobb954/teaser-site
+WORKDIR /app
 
-# Install any runtime dependencies that are needed to run your application.
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk --update add \
-        ca-certificates \
-        tzdata \
-        && \
-        update-ca-certificates
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
-# Create a non-privileged user to run the app.
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
+# Copy binaries from builder
+COPY --from=builder /app/server .
+COPY --from=builder /app/healthcheck /bin/healthcheck
 
-# Copy the compiled binary from the "build" stage.
-COPY --from=build /bin/server /bin/
-COPY ./migrations ./migrations
-COPY ./templates ./templates
-COPY ./static ./static
+# Set environment variables
+ENV GO_ENV=production
 
-ENV MIGRATIONS_URL=file://migrations
-
-# Expose the port that the application listens on.
 EXPOSE 8000
+RUN rm -rf /go/bin/air
+# Run the binary
+CMD ["./server"]
 
-# Run the compiled Go application in production mode
-ENTRYPOINT [ "/bin/server" ]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/bin/healthcheck"]

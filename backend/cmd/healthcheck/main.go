@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	res, err := http.Get("http://localhost:8000/v1/healthcheck")
+	res, err := http.Get("http://traefik/api/v1/healthcheck")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Health check failed after 3 attempts: %v\n", err)
 		os.Exit(1)
