@@ -9,6 +9,8 @@ interface MarketsGridProps {
 }
 
 const MarketsGrid: React.FC<MarketsGridProps> = ({ market }) => {
+  console.log("MarketsGrid");
+  console.log(market);
   if (market.predictionOptions.length === 0) {
     return <div className="text-center text-gray-400">No markets found.</div>;
   }

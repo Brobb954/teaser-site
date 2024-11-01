@@ -1,52 +1,24 @@
 services:
-  watchtower:
-    image: containrrr/watchtower
-    command:
-      - "--label-enable"
-      - "--interval"
-      - "36000"
-      - "--rolling-restart"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - frontend
-      - backend
-
-  reverse-proxy:
-    image: traefik:v3.1
-    command:
-      - "--providers.docker"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=brobb@solmarket.info"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - letsencrypt:/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - frontend
-
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
-      dockerfile: frontend.dockerfile
+      dockerfile: frontend.dev.dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.solmarket.rule=Host(`solmarket.info`)"
-      - "traefik.http.routers.solmarket.entrypoints=websecure"
-      - "traefik.http.routers.solmarket.tls.certresolver=myresolver"
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.http.routers.frontend-http.rule=Host(`solmarket.info`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-https.tls=true"
+      - "traefik.http.routers.frontend-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.frontend-https.entrypoints=web-secure"
+      - "traefik.http.routers.frontend-https.rule=Host(`solmarket.info`)"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./frontend:/usr/src/app:cached
+      - frontend-node-modules:/usr/src/app/node_modules
+      - frontend-bun-cache:/root/.bun
+      - frontend-build-cache:/usr/src/app/.next
     environment:
       - NODE_ENV=development
     depends_on:
@@ -54,37 +26,59 @@ services:
         condition: service_healthy
         restart: true
     networks:
-      - frontend
+    - teaser-site
 
   backend:
+    container_name: backend
     build:
       context: ./backend
       dockerfile: backend.dev.dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
     volumes:
-      - ./backend:/app
-      - /app/go/pkg/mod
+      - ./backend:/app:cached
+      - backend-go-cache:/root/.cache/go-build
+      - backend-go-mod:/go/pkg/mod
     environment:
+      - GOCACHE=/root/.cache/go-build
+      - GOMODCACHE=/go/pkg/mod
       - DB_HOST=postgres
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_PORT=5432
-      - SERVER_PORT=8080
+      - SERVER_PORT=8000
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GO_ENV=development
-    ports:
-      - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      # Router Unsecure
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.service=backend"
+
+      # Service
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+      # Middlewares
+      - "traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,OPTIONS,POST,PATCH"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Accept,Authorization,Content-Type,Origin,Host"
+
+      # Apply middlewares to router
+      - "traefik.http.routers.backend.middlewares=backend-strip,backend-cors"
+    command: ["air", "-c", ".air.toml"]
     healthcheck:
       test: ["CMD", "/bin/healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 2s
+      retries: 3
       start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
         restart: true
     networks:
-      - backend
+      - teaser-site
 
   postgres:
     image: postgres
@@ -99,17 +93,23 @@ services:
       - 5432
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 2s
       start_period: 30s
-      retries: 5
+      retries: 3
     networks:
-      - backend
+      - teaser-site
 
 networks:
-  frontend:  # Network for frontend and traefik
-  backend:   # Internal network for backend services
+  teaser-site:
+    external:
+      true
 
 volumes:
+  frontend-node-modules:
+  frontend-bun-cache:
+  frontend-build-cache:
+  backend-go-cache:
+  backend-go-mod:
   postgres-data:
   letsencrypt:

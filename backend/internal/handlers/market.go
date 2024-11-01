@@ -16,10 +16,18 @@ type FullMarket struct {
 
 func (h *Handlers) GetMarket(ctx *fiber.Ctx) error {
 
+	fmt.Printf("GetMarket called with path: %s\n", ctx.Path())
+
+	fmt.Printf("Request headers:\n")
+	ctx.Request().Header.VisitAll(func(key, value []byte) {
+		fmt.Printf("%s: %s\n", string(key), string(value))
+	})
+
 	id, err := strconv.ParseInt(ctx.Params("id"), 10, 64)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).SendString("Invalid ID")
 	}
+	fmt.Printf("Fetching market with ID: %d\n", id)
 
 	market, err := h.Repo.GetMarket(ctx.Context(), int32(id))
 	if err != nil {
@@ -37,6 +45,9 @@ func (h *Handlers) GetMarket(ctx *fiber.Ctx) error {
 	for i := 0; i < len(marketFull.Options); i++ {
 		fmt.Println(marketFull.Options[i])
 	}
+
+	fmt.Printf("Successfully returning market data for ID: %d\n", id)
+
 	return ctx.JSON(marketFull)
 
 }

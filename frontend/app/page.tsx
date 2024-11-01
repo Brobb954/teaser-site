@@ -4,7 +4,11 @@ import { GetMarket } from "@/lib/fetchMarkets";
 
 export default async function Home() {
   const initialData = await GetMarket();
-  if (!initialData) throw new Error("Could not fetch market data");
+  if (!initialData) {
+    console.error("GetMarket returned undefined");
+    throw new Error();
+  }
+  console.log(initialData);
 
   return (
     <main className="container mx-auto min-h-screen bg-primaryBg px-4 py-10">

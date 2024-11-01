@@ -28,7 +28,7 @@ func GetConfig() Config {
 		DBUser:         getEnvOrDefault("DB_USER", "postgres"),
 		DBName:         getEnvOrDefault("DB_NAME", "postgres"),
 		DBPassword:     getEnvOrDefault("DB_PASSWORD", "notPassword"),
-		ServerPort:     getEnvOrDefault("SERVER_PORT", "8080"),
-		AllowedOrigins: getEnvOrDefault("ALLOWED_ORIGINS", "http://localhost:3000, http://localhost:8080"),
+		ServerPort:     getEnvOrDefault("SERVER_PORT", "8000"),
+		AllowedOrigins: getEnvOrDefault("ALLOWED_ORIGINS", "*"),
 	}
 }

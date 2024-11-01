@@ -1,33 +1,35 @@
 ARG GO_VERSION=1.23.2
 FROM golang:${GO_VERSION}
-LABEL org.opencontainers.image.source=https://github.com/brobb954/teaser-site
+
 WORKDIR /app
 
-# Install Air for live reloading
-RUN go install github.com/air-verse/air@latest
-
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl
-
-# Copy the Air config file
-COPY .air.toml ./
-
-# Copy go mod files
+# Copy go.mod and go.sum first for better caching
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
+# Install Air for live reloading
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go install github.com/air-verse/air@latest
+
 COPY . .
+# Build healthcheck binary with go cache
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /bin/healthcheck ./cmd/healthcheck
 
-# Build healthcheck binary
-RUN CGO_ENABLED=0 go build -o /bin/healthcheck ./cmd/healthcheck
+# Create tmp directory for Air
+RUN mkdir -p tmp
 
-# Add healthcheck
-HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
-    CMD ["/bin/healthcheck"]
+# Install tini for proper signal handling
+RUN apt-get update && apt-get install -y tini
 
-# Expose port
-EXPOSE 8080
+# Create the Air config file
+COPY .air.toml .
 
-# Run air for hot reloading
+EXPOSE 8000
+
+# Use tini as init process
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Run Air with proper signal handling
 CMD ["air", "-c", ".air.toml"]

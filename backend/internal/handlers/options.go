@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func (h *Handlers) IncrementCounter(ctx *fiber.Ctx) error {
+	fmt.Println("In handler")
 
 	optionId, err := strconv.ParseInt(ctx.Params("optionId"), 10, 64)
 	if err != nil {

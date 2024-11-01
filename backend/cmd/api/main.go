@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -19,16 +20,25 @@ func main() {
 		log.Fatalf("Always should become application. Error: %v", err)
 	}
 
+	errChan := make(chan error, 1)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		if err := app.Start(); err != nil {
-			log.Fatalf("Server did not start properly. Error: %v", err)
-			os.Exit(1)
+			errChan <- fmt.Errorf("Did not start: %v", err)
 		}
 	}()
 
-	wait := make(chan os.Signal, 1)
-	signal.Notify(wait, os.Interrupt, syscall.SIGTERM)
-	<-wait
+	select {
+	case err := <-errChan:
+		log.Fatalf("Server error recieved: %v", err)
+		os.Exit(1)
+	case sig := <-sigChan:
+		fmt.Printf("Shutdown signal received: %v", sig)
+
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -10,8 +10,7 @@ import { Market } from "@/types/market";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 import Options from "../options";
-import { IncrementCounter } from "@/lib/fetchMarkets";
-import { GetMarket } from "@/lib/fetchMarkets";
+import { GetMarketBrowser, IncrementCounter } from "@/lib/fetchMarkets";
 
 interface MarketCardProps {
   market: Market;
@@ -27,19 +26,29 @@ const MarketCard: React.FC<MarketCardProps> = ({ market: initialMarket }) => {
   // Function to handle click and increment the counter
   const handleIncrement = async (marketId: number, optionId: number) => {
     try {
-      // Fetch updated counters, volume, and percentages from the server action
-      console.log(`${optionId}`);
-      console.log(`${marketId}`);
-      await IncrementCounter(marketId, optionId);
-      const updatedMarket = await GetMarket();
-      if (!updatedMarket) throw new Error("Market did not update");
+      console.log(`Incrementing option ${optionId} for market ${marketId}`);
+
+      // Try the increment
+      try {
+        await IncrementCounter(marketId, optionId);
+      } catch (error) {
+        console.error("PATCH request failed:", error);
+        throw error; // Re-throw to prevent the GET request if PATCH fails
+      }
+
+      // If increment succeeds, try to get updated data
+      const updatedMarket = await GetMarketBrowser();
+      if (!updatedMarket) {
+        throw new Error("Failed to fetch updated market data");
+      }
+
       setCurrentMarkets(updatedMarket);
-      console.log(updatedMarket);
+      console.log("Successfully updated market:", updatedMarket);
     } catch (error) {
-      console.log(error);
+      console.error("Complete operation failed:", error);
+      // You might want to show an error message to the user here
     }
   };
-
   const sortedOptions = [...(currentMarkets?.predictionOptions || [])].sort(
     (a, b) => b.optionsCount - a.optionsCount,
   );

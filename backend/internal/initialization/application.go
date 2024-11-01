@@ -38,7 +38,10 @@ func NewApplication(config Config) (*Application, error) {
 
 func (app *Application) Start() error {
 	app.fiber.Use(func(c *fiber.Ctx) error {
-		app.logger.Error("Client connected: %s %s", c.Method(), c.OriginalURL())
+		app.logger.Info("received request",
+			"method", c.Method(),
+			"path", c.Path(),
+			"ip", c.IP())
 		return c.Next()
 	})
 
