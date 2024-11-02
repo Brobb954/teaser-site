@@ -8,7 +8,7 @@ import {
 } from "@/types/market";
 
 export async function GetMarket(): Promise<undefined | Market> {
-  const url = `http://traefik/api/v1/market/1`;
+  const url = `http://backend:800/api/v1/market/1`;
   console.log("Server-side request to:", url);
 
   const controller = new AbortController();

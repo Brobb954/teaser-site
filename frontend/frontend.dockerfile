@@ -1,9 +1,9 @@
 # Build stage
-FROM oven/bun:1 AS builder
+FROM oven/bun:latest AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./
+COPY package.json ./
 
 # Install dependencies
 RUN bun install
@@ -16,10 +16,9 @@ ENV NODE_ENV=production
 RUN bun run build
 
 # Production stage
+FROM oven/bun:alpine AS runner
 WORKDIR /app
 
-# Install necessary production packages
-RUN apk --no-cache add curl
 
 # Copy built assets from builder
 COPY --from=builder /app/.next/standalone ./
@@ -31,4 +30,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["bun", "server.js"]
+CMD ["bun", "run", "start"]

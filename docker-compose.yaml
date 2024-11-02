@@ -15,38 +15,33 @@ services:
     environment:
       - NODE_ENV=development
     depends_on:
-      backend:
-        condition: service_healthy
-        restart: true
+    - backend
     networks:
     - teaser-site
 
   backend:
-    deploy:
-      replicas: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        window: 120s
+    # deploy:
+    #   replicas: 3
+    #   update_config:
+    #     parallelism: 1
+    #     delay: 10s
+    #     order: start-first
+    #   restart_policy:
+    #     condition: on-failure
+    #     max_attempts: 3
+    #     window: 120s
     build:
       context: ./backend
-      dockerfile: backend.test.dockerfile
+      dockerfile: backend.dockerfile
     env_file:
       - .env
     environment:
-      - GOCACHE=/root/.cache/go-build
-      - GOMODCACHE=/go/pkg/mod
       - DB_HOST=postgres
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_PORT=5432
       - SERVER_PORT=8000
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-      - GO_ENV=production
     labels:
       - "traefik.enable=true"
       # Router
@@ -64,12 +59,6 @@ services:
 
       # Apply middlewares to router
       - "traefik.http.routers.backend.middlewares=backend-strip,backend-cors"
-    healthcheck:
-      test: ["CMD", "/bin/healthcheck"]
-      interval: 5s
-      timeout: 2s
-      retries: 3
-      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy

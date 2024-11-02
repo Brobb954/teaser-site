@@ -19,6 +19,13 @@ func (app *Application) setupDatabase() error {
 		app.config.DBName,
 	)
 
+	fmt.Printf("postgres://%s:%s@%s:%s/%s",
+		app.config.DBUser,
+		app.config.DBPassword,
+		app.config.DBHost,
+		app.config.DBPort,
+		app.config.DBName,
+	)
 	var err error
 	app.db, err = pgxpool.New(context.Background(), dsn)
 	if err != nil {
