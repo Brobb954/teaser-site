@@ -8,7 +8,22 @@ import {
 } from "@/types/market";
 
 export async function GetMarket(): Promise<undefined | Market> {
-  const url = `http://backend:800/api/v1/market/1`;
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.BUILD_TIME === "true"
+  ) {
+    // Return a fallback market for build time
+    return {
+      predictionMarket: {
+        marketId: 1,
+        title: "Loading...",
+        volume: 0,
+        description: "Loading market data...",
+      },
+      predictionOptions: [],
+    };
+  }
+  const url = `http://backend:8000/v1/market/1`;
   console.log("Server-side request to:", url);
 
   const controller = new AbortController();

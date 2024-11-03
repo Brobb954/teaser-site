@@ -14,9 +14,12 @@ COPY . .
 # Build the main application
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/api
 
+RUN CGO_ENABLED=0 go build -o /bin/healthcheck ./cmd/healthcheck
+
 # Final stage
 FROM alpine:3.19
 
+RUN apk add --no-cache curl
 WORKDIR /app
 
 # Install ca-certificates for HTTPS requests

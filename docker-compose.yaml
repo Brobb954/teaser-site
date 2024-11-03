@@ -4,18 +4,22 @@ services:
     build:
       context: ./frontend
       dockerfile: frontend.dockerfile
+      args:
+        - BUILD_TIME=true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend-http.rule=Host(`solmarket.info`)"
       - "traefik.http.routers.frontend-http.entrypoints=web"
       - "traefik.http.routers.frontend-https.tls=true"
       - "traefik.http.routers.frontend-https.tls.certresolver=cloudflare"
-      - "traefik.http.routers.frontend-https.entrypoints=web-secure"
+      - "traefik.http.routers.frontend-https.entrypoints=websecure"
       - "traefik.http.routers.frontend-https.rule=Host(`solmarket.info`)"
     environment:
       - NODE_ENV=development
+      - BUILD_TIME=false
     depends_on:
-    - backend
+      backend:
+        condition: service_healthy
     networks:
     - teaser-site
 
@@ -44,7 +48,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     labels:
       - "traefik.enable=true"
-      # Router
+      # Router Unsecure
       - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.backend.service=backend"
 
@@ -53,12 +57,15 @@ services:
 
       # Middlewares
       - "traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api"
-      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,OPTIONS,PATCH"
-      - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://solmarket.info,https://www.solmarket.info"
-      - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Accept,Authorization,Content-Type,Origin,Host"
 
       # Apply middlewares to router
-      - "traefik.http.routers.backend.middlewares=backend-strip,backend-cors"
+      - "traefik.http.routers.backend.middlewares=backend-strip"
+    healthcheck:  # Add this
+      test: ["CMD", "/bin/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy

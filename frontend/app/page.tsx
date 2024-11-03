@@ -1,12 +1,24 @@
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import MarketsGrid from "../components/market/marketgrid";
 import { GetMarket } from "@/lib/fetchMarkets";
+import { Suspense } from "react";
 
 export default async function Home() {
+  return (
+    <Suspense fallback={<LoadingUI />}>
+      <MarketContent />
+    </Suspense>
+  );
+}
+
+async function MarketContent() {
   const initialData = await GetMarket();
   if (!initialData) {
-    console.error("GetMarket returned undefined");
-    throw new Error();
+    return (
+      <main className="container mx-auto min-h-screen bg-primaryBg px-4 py-10">
+        <div>Unable to load market data. Please try again later.</div>
+      </main>
+    );
   }
   console.log(initialData);
 
@@ -28,6 +40,14 @@ export default async function Home() {
           <MarketsGrid market={initialData} />
         </div>
       </section>
+    </main>
+  );
+}
+
+function LoadingUI() {
+  return (
+    <main className="container mx-auto min-h-screen bg-primaryBg px-4 py-10">
+      <div>Loading market data...</div>
     </main>
   );
 }

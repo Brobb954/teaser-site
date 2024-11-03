@@ -5,7 +5,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mydashboard.rule=Host(`traefik.solmarket.info`)"
+      - "traefik.http.routers.mydashboard.service=api@internal"
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     volumes:
