@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23.2 AS builder
+FROM golang:1.23.2-alpine AS builder
 
 WORKDIR /app
 
@@ -12,24 +12,28 @@ RUN go mod download
 COPY . .
 
 # Build the main application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/api
-
-RUN CGO_ENABLED=0 go build -o /bin/healthcheck ./cmd/healthcheck
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags=-static' \
+    -o /app/server \
+    ./cmd/api
 
 # Final stage
 FROM alpine:3.19
 
-RUN apk add --no-cache curl
-WORKDIR /app
+RUN apk add --no-cache curl ca-certificates tzdata
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+WORKDIR /app
 
 # Copy binaries from builder
 COPY --from=builder /app/server .
 
+RUN adduser -D appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # Set environment variables
-ENV GO_ENV=production
+ENV GO_ENV=production\
+    TZ=UTC
 
 EXPOSE 8000
 # Run the binary

@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json bun.lockb ./
 
 # Install dependencies
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Copy source files
 COPY . .
@@ -19,6 +19,10 @@ RUN bun run build
 FROM oven/bun:alpine AS runner
 WORKDIR /app
 
+RUN adduser -D nextjs && \
+    chown -R nextjs:nextjs /app
+USER nextjs
+
 # Copy necessary files
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
@@ -26,9 +30,6 @@ COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
-
-EXPOSE 3000
 
 # The entry point is server.js in standalone mode
 CMD ["bun", "run", "server.js"]

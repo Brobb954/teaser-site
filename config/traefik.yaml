@@ -5,7 +5,6 @@ log:
   level: DEBUG
 api:
   dashboard: true
-  insecure: true
 entryPoints:
   web:
     address: :80
@@ -16,6 +15,15 @@ entryPoints:
           scheme: https
   websecure:
     address: :443
+    http:
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: solmarket.info
+            sans:
+              - "*.solmarket.info"
+      middlewares:
+        - secure-headers@file
 certificatesResolvers:
   cloudflare:
     acme:

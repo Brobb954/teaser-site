@@ -18,6 +18,8 @@ services:
     networks:
       - teaser-site
     restart: unless-stopped
+    security_opt:
+      - no-new-privilages:true
 networks:
   teaser-site:
     external: true
