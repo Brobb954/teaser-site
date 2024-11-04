@@ -34,10 +34,15 @@ const Options: React.FC<OptionsProps> = ({ market }) => {
 
   console.log("Pie chart data point:", pieChartData);
   return (
-    <ChartContainer config={chartConfig}>
-      <PieChart width={300} height={200}>
+    <ChartContainer
+      config={chartConfig}
+      className="h-[200px] flex items-center justify-center w-full"
+    >
+      <PieChart width={400} height={250}>
         <Pie
           dataKey="value"
+          cx="50%"
+          cy="50%"
           innerRadius={40}
           outerRadius={80}
           data={pieChartData}
@@ -52,7 +57,7 @@ const Options: React.FC<OptionsProps> = ({ market }) => {
             );
           })}
         </Pie>
-        <Legend />
+        <Legend margin={{ bottom: -500 }} verticalAlign="top" align="center" />
       </PieChart>
     </ChartContainer>
   );

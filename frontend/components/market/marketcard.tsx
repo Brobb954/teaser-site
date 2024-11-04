@@ -62,7 +62,7 @@ const MarketCard: React.FC<MarketCardProps> = ({ market: initialMarket }) => {
           {currentMarkets.predictionMarket.title}
         </CardHeader>
 
-        <CardContent key={currentMarkets.predictionMarket.title}>
+        <CardContent className="mb-4">
           <Options market={currentMarkets} />
 
           <div className="flex items-center mt-2 justify-between text-sm text-textColor">
