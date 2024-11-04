@@ -2,7 +2,18 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 log:
-  level: DEBUG
+  level: INFO  # Use DEBUG during initial setup, then switch to INFO
+  format: json
+  filePath: "/var/log/traefik/traefik.log"
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  format: json
+  filters:
+    statusCodes:
+      - "400-599"    # Log all errors
+    retryAttempts: true
+    minDuration: "100ms"  # Log slower requests
 api:
   dashboard: true
 entryPoints:
@@ -22,8 +33,6 @@ entryPoints:
           - main: solmarket.info
             sans:
               - "*.solmarket.info"
-      middlewares:
-        - secure-headers@file
 certificatesResolvers:
   cloudflare:
     acme:

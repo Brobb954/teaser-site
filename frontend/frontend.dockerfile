@@ -15,6 +15,11 @@ COPY . .
 ENV NODE_ENV=production
 RUN bun run build
 
+RUN echo "Checking standalone output" && \
+    ls -la .next/standalone && \
+    echo "Checking static files" && \
+    ls -la .next/static
+
 # Production stage
 FROM oven/bun:alpine AS runner
 WORKDIR /app
@@ -30,6 +35,7 @@ COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
 
 # The entry point is server.js in standalone mode
-CMD ["bun", "run", "server.js"]
+CMD ["bun", "run", "dev"]

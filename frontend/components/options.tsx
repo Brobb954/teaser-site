@@ -1,6 +1,7 @@
 import { Market } from "@/types/market";
-import { ChartConfig, ChartContainer } from "./ui/chart";
+// import { ChartConfig, ChartContainer } from "./ui/chart";
 import { Cell, Legend, Pie, PieChart } from "recharts";
+import { ChartConfig, ChartContainer } from "./ui/chart";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -31,28 +32,29 @@ const Options: React.FC<OptionsProps> = ({ market }) => {
     };
   });
 
+  console.log("Pie chart data point:", pieChartData);
   return (
-    <div>
-      <ChartContainer config={chartConfig}>
-        <PieChart>
-          <Pie
-            dataKey="value"
-            innerRadius={40}
-            cy={75}
-            outerRadius={80}
-            data={pieChartData}
-          >
-            {pieChartData.map((_entry, index) => (
+    <ChartContainer config={chartConfig}>
+      <PieChart width={300} height={200}>
+        <Pie
+          dataKey="value"
+          innerRadius={40}
+          outerRadius={80}
+          data={pieChartData}
+        >
+          {pieChartData.map((_entry, index) => {
+            console.log("Rendering cell:", _entry);
+            return (
               <Cell
                 key={`${_entry.order}`}
                 fill={COLORS[index % COLORS.length]}
               />
-            ))}
-          </Pie>
-          <Legend />
-        </PieChart>
-      </ChartContainer>
-    </div>
+            );
+          })}
+        </Pie>
+        <Legend />
+      </PieChart>
+    </ChartContainer>
   );
 };
 

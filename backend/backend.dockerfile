@@ -32,9 +32,8 @@ RUN adduser -D appuser && \
 USER appuser
 
 # Set environment variables
-ENV GO_ENV=production\
+ENV GO_ENV=production \
     TZ=UTC
 
-EXPOSE 8000
 # Run the binary
 CMD ["./server"]

@@ -1,17 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import MarketsGrid from "../components/market/marketgrid";
 import { GetMarket } from "@/lib/fetchMarkets";
-import { Suspense } from "react";
 
-export default async function Home() {
-  return (
-    <Suspense fallback={<LoadingUI />}>
-      <MarketContent />
-    </Suspense>
-  );
-}
-
-async function MarketContent() {
+export default async function MarketContent() {
   const initialData = await GetMarket();
   if (!initialData) {
     return (
@@ -40,14 +33,6 @@ async function MarketContent() {
           <MarketsGrid market={initialData} />
         </div>
       </section>
-    </main>
-  );
-}
-
-function LoadingUI() {
-  return (
-    <main className="container mx-auto min-h-screen bg-primaryBg px-4 py-10">
-      <div>Loading market data...</div>
     </main>
   );
 }

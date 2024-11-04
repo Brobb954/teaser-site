@@ -6,3 +6,12 @@ node_modules
 .env*
 coverage
 .vscode
+# Frontend
+node_modules
+.next
+.git
+.env*
+
+# Backend
+.git
+.env*

@@ -10,7 +10,7 @@ import { Market } from "@/types/market";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 import Options from "../options";
-import { GetMarketBrowser, IncrementCounter } from "@/lib/fetchMarkets";
+import { GetMarket, IncrementCounter } from "@/lib/fetchMarkets";
 
 interface MarketCardProps {
   market: Market;
@@ -37,7 +37,7 @@ const MarketCard: React.FC<MarketCardProps> = ({ market: initialMarket }) => {
       }
 
       // If increment succeeds, try to get updated data
-      const updatedMarket = await GetMarketBrowser();
+      const updatedMarket = await GetMarket();
       if (!updatedMarket) {
         throw new Error("Failed to fetch updated market data");
       }

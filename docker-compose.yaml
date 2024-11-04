@@ -1,4 +1,28 @@
 services:
+  traefik:
+    image: traefik:v3.1.5
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mydashboard.rule=Host(`traefik.solmarket.info`)"
+      - "traefik.http.routers.mydashboard.service=api@internal"
+      - "traefik.http.routers.mydashboard.tls=true"
+      - "traefik.http.routers.mydashboard.entrypoints=websecure"
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./data/certs/:/var/traefik/certs/:rw
+    networks:
+      - teaser-site
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
   frontend:
     container_name: frontend
     build:
@@ -9,11 +33,21 @@ services:
       - "traefik.http.routers.frontend.rule=Host(`solmarket.info`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.service=frontend-service"
+      - "traefik.http.services.frontend-service.loadbalancer.server.port=3000"
     environment:
       - NODE_ENV=production
+      - HOST=0.0.0.0
     depends_on:
       backend:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+        tag: "frontend/{{.ID}}"
     networks:
     - teaser-site
 
@@ -39,7 +73,14 @@ services:
       - "traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api"
       - "traefik.http.routers.backend.middlewares=backend-strip"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/healthcheck"]
+      test: |
+        CMD-SHELL
+        echo "Starting health check..." &&
+        echo "Checking if curl is available..." &&
+        which curl &&
+        echo "Attempting to connect to http://localhost:8000/v1/    healthcheck..." &&
+        curl -v http://localhost:8000/v1/healthcheck 2>&1 ||
+        (echo "Health check failed" && exit 1)
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,11 +89,18 @@ services:
       postgres:
         condition: service_healthy
         restart: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+        compress: "true"
+        tag: "backend/{{.ID}}"
     networks:
       - teaser-site
 
   postgres:
-    image: postgres
+    image: postgres:16
     restart: unless-stopped
     env_file:
       - .env
@@ -69,6 +117,13 @@ services:
       timeout: 2s
       start_period: 30s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+        tag: "postgres/{{.ID}}"
     networks:
       - teaser-site
 

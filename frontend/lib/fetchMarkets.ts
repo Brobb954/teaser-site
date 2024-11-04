@@ -8,23 +8,7 @@ import {
 } from "@/types/market";
 
 export async function GetMarket(): Promise<undefined | Market> {
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.BUILD_TIME === "true"
-  ) {
-    // Return a fallback market for build time
-    return {
-      predictionMarket: {
-        marketId: 1,
-        title: "Loading...",
-        volume: 0,
-        description: "Loading market data...",
-      },
-      predictionOptions: [],
-    };
-  }
-  const url = `http://backend:8000/v1/market/1`;
-  console.log("Server-side request to:", url);
+  const url = `https://solmarket.info/api/v1/market/1`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -38,12 +22,6 @@ export async function GetMarket(): Promise<undefined | Market> {
         Pragma: "no-cache",
       },
     });
-
-    console.log("Initial GET response status:", res.status);
-    console.log(
-      "Initial GET response headers:",
-      Object.fromEntries(res.headers.entries()),
-    );
     clearTimeout(timeoutId);
 
     if (!res.ok) {
@@ -51,86 +29,6 @@ export async function GetMarket(): Promise<undefined | Market> {
     }
 
     const data: MarketResponse = await res.json();
-    console.log("Raw response data:", data);
-
-    const { Market, Options } = data;
-
-    const decodedMarket: ResponseMarket = {
-      Marketid: Market.Marketid,
-      Title: Market.Title,
-      Volume: Market.Volume,
-      Description: Market.Description,
-    };
-
-    const decodedOptions: ResponseOptions[] = Options.map((option) => ({
-      Optionid: option.Optionid,
-      Marketid: option.Marketid,
-      Optiontext: option.Optiontext,
-      Optioncount: option.Optioncount,
-    }));
-    decodedOptions.sort((a, b) => a.Optionid - b.Optionid);
-    const predictionMarket: PredictionMarket = {
-      marketId: decodedMarket.Marketid,
-      title: decodedMarket.Title,
-      volume: decodedMarket.Volume,
-      description: decodedMarket.Description,
-    };
-
-    const predictionOption: PredictionOption[] = decodedOptions.map(
-      (options) => ({
-        optionId: options.Optionid,
-        marketId: options.Marketid,
-        predictionOption: options.Optiontext,
-        optionsCount: options.Optioncount,
-      }),
-    );
-    const market: Market = {
-      predictionMarket: predictionMarket,
-      predictionOptions: predictionOption,
-    };
-    return market;
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error("Fetch error:", err.message);
-      if (err.name == "AbortError") {
-        console.error("Fetch aborted after 5 seconds");
-      }
-    }
-    return undefined;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-export async function GetMarketBrowser(): Promise<undefined | Market> {
-  const url = `http://localhost/api/v1/market/1`;
-  console.log("Server-side request to:", url);
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        CacheControl: "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-      },
-    });
-    console.log("Browser GET response status:", res.status);
-    console.log(
-      "Browser GET response headers:",
-      Object.fromEntries(res.headers.entries()),
-    );
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      throw new Error("Network did not respond");
-    }
-
-    const data: MarketResponse = await res.json();
-    console.log("Raw response data:", data);
     const { Market, Options } = data;
 
     const decodedMarket: ResponseMarket = {
@@ -182,7 +80,7 @@ export async function GetMarketBrowser(): Promise<undefined | Market> {
 
 export async function IncrementCounter(marketId: number, optionsId: number) {
   try {
-    const url = `http://localhost/api/v1/market/${marketId}/option/${optionsId}`;
+    const url = `https://solmarket.info/api/v1/market/${marketId}/option/${optionsId}`;
 
     const response = await fetch(url, {
       method: "PATCH",
