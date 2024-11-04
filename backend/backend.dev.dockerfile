@@ -32,4 +32,4 @@ EXPOSE 8000
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Run Air with proper signal handling
-CMD ["air", "-c", ".air.toml"]
+CMD air -c .air.toml
